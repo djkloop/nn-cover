@@ -6,7 +6,13 @@ export interface Feature {
   desc: string;
 }
 
+export type CoverStyle = 'tech' | 'hackernews' | 'minimal' | 'cyberpunk' | 'terminal' | 'sunset' | 'aurora' | 'noir' | 'chinared' | 'mint' | 'neoncity' | 'dashboard' | 'vinyl' | 'nature' | 'sakura' | 'pixel' | 'papernote' | 'oceandeep' | 'forestdark' | 'goldenlux' | 'githubtrending' | 'viralheadline';
+
+export type LayoutMode = 'card' | 'headline';
+
 export interface CoverState {
+  style: CoverStyle;
+  layoutMode: LayoutMode;
   mainTitlePrefix: string;
   mainTitleSuffix: string;
   subtitle: string;
@@ -32,9 +38,13 @@ export interface CoverState {
   setTag: (index: number, value: string) => void;
   setStars: (v: string) => void;
   setTrendText: (v: string) => void;
+  setStyle: (v: CoverStyle) => void;
+  setLayoutMode: (v: LayoutMode) => void;
 }
 
 export const useCoverStore = create<CoverState>((set) => ({
+  style: 'tech',
+  layoutMode: 'card',
   mainTitlePrefix: 'GitHub',
   mainTitleSuffix: '热榜',
   subtitle: '发现全球最火开源项目',
@@ -75,4 +85,6 @@ export const useCoverStore = create<CoverState>((set) => ({
     }),
   setStars: (v) => set({ stars: v }),
   setTrendText: (v) => set({ trendText: v }),
+  setStyle: (v) => set({ style: v }),
+  setLayoutMode: (v) => set({ layoutMode: v }),
 }));

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useCoverStore } from '@/store/coverStore';
 import {
   Download,
@@ -7,6 +8,7 @@ import {
   Code2,
   Star,
   ChevronDown,
+  ChevronUp,
   Type,
   Layers,
   User,
@@ -17,6 +19,7 @@ import {
   Loader2,
   Sparkles,
   AlertCircle,
+  Palette,
 } from 'lucide-react';
 import { domToPng } from 'modern-screenshot';
 
@@ -25,6 +28,33 @@ const iconOptions = [
   { value: 'target', Icon: Target },
   { value: 'code', Icon: Code2 },
   { value: 'star', Icon: Star },
+];
+
+import type { CoverStyle } from '@/store/coverStore';
+
+const styleOptions: { value: CoverStyle; label: string; emoji: string; color: string; desc: string }[] = [
+  { value: 'tech', label: '科技蓝', emoji: '🔵', color: '#3b82f6', desc: '深蓝渐变+霓虹光晕' },
+  { value: 'hackernews', label: 'HackerNews', emoji: '📰', color: '#ff6600', desc: '橙色头条新闻风' },
+  { value: 'minimal', label: '极简白', emoji: '⬜', color: '#111111', desc: '干净留白大字' },
+  { value: 'cyberpunk', label: '赛博朋克', emoji: '🟣', color: '#ff0080', desc: '霓虹粉青故障风' },
+  { value: 'terminal', label: '终端绿', emoji: '🟢', color: '#00ff41', desc: '黑客命令行风格' },
+  { value: 'sunset', label: '暖橙日落', emoji: '🟠', color: '#ff6b35', desc: '温馨暖色氛围' },
+  { value: 'aurora', label: '极光紫', emoji: '💜', color: '#a855f7', desc: '梦幻流光极光' },
+  { value: 'noir', label: '黑白电影', emoji: '🖤', color: '#888888', desc: '高对比胶片质感' },
+  { value: 'chinared', label: '中国红', emoji: '🔴', color: '#c41e3a', desc: '国潮金红大气' },
+  { value: 'mint', label: '薄荷绿', emoji: '💚', color: '#2dd4bf', desc: '清新夏日薄荷' },
+  { value: 'neoncity', label: '霓虹都市', emoji: '🌃', color: '#00b4db', desc: '城市夜景广告牌' },
+  { value: 'dashboard', label: '数据仪表盘', emoji: '📊', color: '#3b82f6', desc: '实时监控面板' },
+  { value: 'vinyl', label: '黑胶唱片', emoji: '🎵', color: '#8B4513', desc: '复古音乐专辑' },
+  { value: 'nature', label: '自然户外', emoji: '🏔️', color: '#22c55e', desc: '森林草地天空' },
+  { value: 'sakura', label: '樱花日系', emoji: '🌸', color: '#ffb7c5', desc: '温柔浪漫花海' },
+  { value: 'pixel', label: '像素复古', emoji: '👾', color: '#4169e1', desc: '8-bit游戏像素风' },
+  { value: 'papernote', label: '便签纸', emoji: '📝', color: '#2563eb', desc: '手写便利签风格' },
+  { value: 'oceandeep', label: '深海蓝', emoji: '🌊', color: '#0077b6', desc: '海洋气泡玻璃态' },
+  { value: 'forestdark', label: '暗夜森林', emoji: '🌲', color: '#2d6a4f', desc: '神秘魔法森林' },
+  { value: 'goldenlux', label: '奢华金', emoji: '👑', color: '#d4af37', desc: '高端金色商务' },
+  { value: 'githubtrending', label: 'GitHub排行', emoji: '📊', color: '#238636', desc: 'Trending排行榜列表' },
+  { value: 'viralheadline', label: '爆款标题', emoji: '🔥', color: '#ef4444', desc: '吸睛新闻头条风' },
 ];
 
 const sections = [
@@ -182,6 +212,26 @@ export default function EditPanel() {
   const [open, setOpen] = useState<Record<string, boolean>>({
     title: true, features: true, meta: true, project: true,
   });
+  const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
+  const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+
+  const updateDropdownPos = useCallback(() => {
+    if (dropdownTriggerRef.current) {
+      const rect = dropdownTriggerRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (styleDropdownOpen) {
+      updateDropdownPos();
+    }
+  }, [styleDropdownOpen, updateDropdownPos]);
   const [ghInput, setGhInput] = useState('');
   const [ghLoading, setGhLoading] = useState(false);
   const [ghError, setGhError] = useState('');
@@ -323,6 +373,131 @@ export default function EditPanel() {
 
         <div className="mt-4 h-px" style={{ background: 'linear-gradient(90deg, transparent, var(--border-subtle), transparent)' }} />
       </header>
+
+      {/* Style Picker - Dropdown (outside scroll area to avoid clipping) */}
+      <div className="px-6 pb-3">
+        <section
+          className="section-card"
+          style={{
+            background: 'linear-gradient(135deg, rgba(59,130,246,0.06), rgba(139,92,246,0.06))',
+            border: '1px solid rgba(99,102,241,0.2)',
+          }}
+        >
+          <div className="flex items-center gap-2.5 mb-3">
+            <span
+              className="flex items-center justify-center w-7 h-7 rounded-lg text-sm"
+              style={{ background: 'rgba(236,72,153,0.12)', color: '#ec4899' }}
+            >
+              <Palette width={15} height={15} />
+            </span>
+            <span className="text-[13px] font-semibold tracking-wide" style={{ color: 'var(--text-primary)' }}>
+              封面风格
+            </span>
+          </div>
+
+          {/* Dropdown trigger */}
+          <div style={{ position: 'relative' }}>
+            <button
+              ref={dropdownTriggerRef}
+              onClick={() => setStyleDropdownOpen((p) => !p)}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer"
+              style={{
+                background: 'rgba(15,23,42,0.5)',
+                border: '1px solid var(--border-subtle)',
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base leading-none">
+                  {styleOptions.find(o => o.value === state.style)?.emoji}
+                </span>
+                <span className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {styleOptions.find(o => o.value === state.style)?.label}
+                </span>
+                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                  {styleOptions.find(o => o.value === state.style)?.desc}
+                </span>
+              </div>
+              {styleDropdownOpen ? (
+                <ChevronUp width={14} height={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              ) : (
+                <ChevronDown width={14} height={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              )}
+            </button>
+
+            {/* Dropdown panel - Portal to body to avoid overflow clipping */}
+            {styleDropdownOpen && createPortal(
+              <div
+                style={{
+                  position: 'fixed',
+                  top: `${dropdownPos.top}px`,
+                  left: `${dropdownPos.left}px`,
+                  width: `${dropdownPos.width}px`,
+                  zIndex: 99999,
+                }}
+              >
+                <div
+                  className="p-3 rounded-xl overflow-y-auto max-h-[280px]"
+                  style={{
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--border-subtle)',
+                    boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+                  }}
+                >
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {styleOptions.map((opt) => {
+                      const isActive = state.style === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => { state.setStyle(opt.value); setStyleDropdownOpen(false); }}
+                          className="flex flex-col items-center gap-1 p-2 rounded-lg cursor-pointer"
+                          style={{
+                            background: isActive ? `${opt.color}20` : 'rgba(15,23,42,0.4)',
+                            border: `1px solid ${isActive ? opt.color : 'transparent'}`,
+                          }}
+                        >
+                          <span className="text-base leading-none">{opt.emoji}</span>
+                          <span
+                            className="text-[9.5px] font-semibold leading-tight text-center"
+                            style={{ color: isActive ? opt.color : 'var(--text-secondary)' }}
+                          >
+                            {opt.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )}
+          </div>
+        </section>
+
+        {/* Layout Mode Toggle */}
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-xl"
+          style={{ background: 'rgba(15,23,42,0.4)', border: '1px solid var(--border-subtle)' }}
+        >
+          <span className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>右侧布局:</span>
+          <div className="flex gap-1">
+            {(['card', 'headline'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => state.setLayoutMode(mode)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer"
+                style={{
+                  background: state.layoutMode === mode ? 'rgba(99,102,241,0.2)' : 'transparent',
+                  border: `1px solid ${state.layoutMode === mode ? '#6366f1' : 'transparent'}`,
+                  color: state.layoutMode === mode ? '#a5b4fc' : 'var(--text-muted)',
+                }}
+              >
+                {mode === 'card' ? '📦 项目卡片' : '🔥 吸睛标题'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto px-6 pb-8 space-y-3 pr-2">
