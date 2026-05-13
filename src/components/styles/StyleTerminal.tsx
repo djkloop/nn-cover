@@ -370,6 +370,7 @@ export default function StyleTerminal() {
                           color: '#00ff41',
                           background: 'rgba(0, 255, 65, 0.07)',
                           border: '1px solid rgba(0, 255, 65, 0.18)',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         {tag}
