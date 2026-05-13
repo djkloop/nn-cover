@@ -155,6 +155,89 @@ interface GitHubRepo {
   owner: { login: string };
 }
 
+const CACHE_PREFIX = 'gh_repo_';
+const CACHE_TTL = 10 * 60 * 1000;
+
+function getCached(fullName: string): GitHubRepo | null {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + fullName);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) { localStorage.removeItem(CACHE_PREFIX + fullName); return null; }
+    return data as GitHubRepo;
+  } catch { return null; }
+}
+
+function setCached(fullName: string, data: GitHubRepo) {
+  try { localStorage.setItem(CACHE_PREFIX + fullName, JSON.stringify({ data, ts: Date.now() })); } catch {}
+}
+
+const CORS_PROXIES = [
+  (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+];
+
+async function fetchViaGitHubAPI(owner: string, repo: string, baseUrl?: string): Promise<GitHubRepo> {
+  const token = import.meta.env.VITE_GITHUB_TOKEN;
+  const baseHeaders: Record<string, string> = { Accept: 'application/vnd.github.v3+json' };
+  if (token) baseHeaders.Authorization = `token ${token}`;
+  const apiBase = baseUrl || `https://api.github.com/repos/${owner}/${repo}`;
+  const res = await fetch(apiBase, { headers: baseHeaders });
+  if (!res.ok) {
+    if (res.status === 404) throw new Error('NOT_FOUND');
+    if (res.status === 403) throw new Error('RATE_LIMIT');
+    throw new Error(`HTTP_${res.status}`);
+  }
+  const data = await res.json();
+  let topics: string[] = [];
+  try {
+    const topicsUrl = baseUrl ? undefined : `https://api.github.com/repos/${owner}/${repo}/topics`;
+    if (topicsUrl) {
+      const tr = await fetch(topicsUrl, { headers: { ...baseHeaders, Accept: 'application/vnd.github.mercy-preview+json' } });
+      if (tr.ok) topics = (await tr.json()).names || [];
+    }
+  } catch { /* ignore */ }
+  return {
+    full_name: data.full_name || `${owner}/${repo}`,
+    description: data.description || '',
+    stargazers_count: data.stargazers_count || 0,
+    language: data.language || '',
+    topics: topics.length > 0 ? topics : data.language ? [data.language] : [],
+    owner: data.owner || { login: owner },
+  };
+}
+
+async function fetchViaOGPage(owner: string, repo: string): Promise<GitHubRepo> {
+  const pageUrl = `https://github.com/${owner}/${repo}`;
+  let html = '';
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const res = await proxy(pageUrl);
+      const r = await fetch(res);
+      if (r.ok) { html = await r.text(); break; }
+    } catch { continue; }
+  }
+  if (!html) throw new Error('OG_FAIL');
+
+  const descMatch = html.match(/<meta[^>]+property="og:description"[^>]+content="([^"]*)"/i)
+    || html.match(/<meta[^>]+name="description"[^>]+content="([^"]*)"/i);
+  const titleMatch = html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]*)"/i)
+    || html.match(/<title>([^<]*)<\/title>/i);
+
+  const desc = descMatch?.[1]?.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>') || '';
+  const langMatch = html.match(/\blang(?:uage)?["\s:]+(\w[\w+#+-]*)/i)?.[1];
+  const lang = langMatch && !['javascript', 'typescript', 'python', 'java', 'go', 'rust', 'c++'].includes(langMatch.toLowerCase()) ? '' : (langMatch || '');
+
+  return {
+    full_name: `${owner}/${repo}`,
+    description: desc,
+    stargazers_count: 0,
+    language: lang,
+    topics: lang ? [lang] : [],
+    owner: { login: owner },
+  };
+}
+
 async function fetchGitHubRepo(input: string): Promise<GitHubRepo> {
   let owner: string, repo: string;
 
@@ -170,40 +253,47 @@ async function fetchGitHubRepo(input: string): Promise<GitHubRepo> {
     }
   }
 
-  const token = import.meta.env.VITE_GITHUB_TOKEN;
-  const baseHeaders: Record<string, string> = { Accept: 'application/vnd.github.v3+json' };
-  if (token) baseHeaders.Authorization = `token ${token}`;
+  const fullName = `${owner}/${repo}`;
+  const cached = getCached(fullName);
+  if (cached) return cached;
 
-  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: baseHeaders });
+  let lastError: Error | null = null;
 
-  if (!res.ok) {
-    if (res.status === 404) throw new Error('仓库未找到，请检查地址是否正确');
-    if (res.status === 403) throw new Error('GitHub API 请求频率超限，请稍后再试（或配置 VITE_GITHUB_TOKEN 提升限额）');
-    if (res.status === 422) throw new Error('仓库信息暂不可用');
-    const body = await res.json().catch(() => null);
-    throw new Error(`API 错误 (${res.status}): ${body?.message || '未知错误'}`);
+  try {
+    const result = await fetchViaGitHubAPI(owner, repo);
+    setCached(fullName, result);
+    return result;
+  } catch (e: any) {
+    lastError = e;
+    console.warn(`[GitHub API 主源失败]: ${e.message}`);
   }
 
-  const data = await res.json();
-
-  const topicsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/topics`, {
-    headers: { ...baseHeaders, Accept: 'application/vnd.github.mercy-preview+json' },
-  });
-  let topics: string[] = [];
-  try {
-    if (topicsRes.ok) {
-      topics = (await topicsRes.json()).names || [];
+  for (let i = 0; i < CORS_PROXIES.length; i++) {
+    try {
+      const proxyUrl = CORS_PROXIES[i](`https://api.github.com/repos/${owner}/${repo}`);
+      console.log(`[GitHub API 尝试备用源 ${i + 1}]`);
+      const result = await fetchViaGitHubAPI(owner, repo, proxyUrl);
+      setCached(fullName, result);
+      return result;
+    } catch (e: any) {
+      lastError = e;
+      console.warn(`[GitHub API 备用源 ${i + 1} 失败]: ${e.message}`);
     }
-  } catch { /* ignore */ }
+  }
 
-  return {
-    full_name: data.full_name,
-    description: data.description || '',
-    stargazers_count: data.stargazers_count,
-    language: data.language,
-    topics: topics.length > 0 ? topics : data.language ? [data.language] : [],
-    owner: data.owner,
-  };
+  try {
+    console.log('[GitHub 尝试 OG 页面解析]');
+    const result = await fetchViaOGPage(owner, repo);
+    setCached(fullName, result);
+    return result;
+  } catch (e: any) {
+    lastError = e;
+    console.warn(`[OG 解析失败]: ${e.message}`);
+  }
+
+  if (lastError?.message === 'NOT_FOUND') throw new Error('仓库未找到，请检查地址是否正确');
+  if (lastError?.message === 'RATE_LIMIT') throw new Error('所有数据源均不可用：GitHub API 频率超限，请稍后再试（或配置 VITE_GITHUB_TOKEN）');
+  throw new Error(`获取失败：${lastError?.message || '未知错误'}，请检查网络后重试`);
 }
 
 function formatStars(n: number): string {
