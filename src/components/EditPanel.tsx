@@ -19,6 +19,7 @@ import {
   Loader2,
   Sparkles,
   AlertCircle,
+  Check,
   Palette,
 } from 'lucide-react';
 import { domToPng } from 'modern-screenshot';
@@ -177,8 +178,8 @@ const CORS_PROXIES = [
   (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
 ];
 
-async function fetchViaGitHubAPI(owner: string, repo: string, baseUrl?: string): Promise<GitHubRepo> {
-  const token = import.meta.env.VITE_GITHUB_TOKEN;
+async function fetchViaGitHubAPI(owner: string, repo: string, baseUrl?: string, userToken?: string): Promise<GitHubRepo> {
+  const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
   const baseHeaders: Record<string, string> = { Accept: 'application/vnd.github.v3+json' };
   if (token) baseHeaders.Authorization = `token ${token}`;
   const apiBase = baseUrl || `https://api.github.com/repos/${owner}/${repo}`;
@@ -238,7 +239,7 @@ async function fetchViaOGPage(owner: string, repo: string): Promise<GitHubRepo> 
   };
 }
 
-async function fetchGitHubRepo(input: string): Promise<GitHubRepo> {
+async function fetchGitHubRepo(input: string, userToken?: string): Promise<GitHubRepo> {
   let owner: string, repo: string;
 
   const urlMatch = input.match(/github\.com\/([^/]+)\/([^/\s?#]+)/);
@@ -259,8 +260,10 @@ async function fetchGitHubRepo(input: string): Promise<GitHubRepo> {
 
   let lastError: Error | null = null;
 
+  const activeToken = userToken || import.meta.env.VITE_GITHUB_TOKEN || '';
+
   try {
-    const result = await fetchViaGitHubAPI(owner, repo);
+    const result = await fetchViaGitHubAPI(owner, repo, undefined, activeToken);
     setCached(fullName, result);
     return result;
   } catch (e: any) {
@@ -272,7 +275,7 @@ async function fetchGitHubRepo(input: string): Promise<GitHubRepo> {
     try {
       const proxyUrl = CORS_PROXIES[i](`https://api.github.com/repos/${owner}/${repo}`);
       console.log(`[GitHub API 尝试备用源 ${i + 1}]`);
-      const result = await fetchViaGitHubAPI(owner, repo, proxyUrl);
+      const result = await fetchViaGitHubAPI(owner, repo, proxyUrl, activeToken);
       setCached(fullName, result);
       return result;
     } catch (e: any) {
@@ -328,9 +331,16 @@ export default function EditPanel() {
     }
   }, [styleDropdownOpen, updateDropdownPos]);
   const [ghInput, setGhInput] = useState('');
+  const [ghToken, setGhToken] = useState(() => sessionStorage.getItem('gh_token') || '');
+  const [showToken, setShowToken] = useState(false);
   const [ghLoading, setGhLoading] = useState(false);
   const [ghError, setGhError] = useState('');
   const [ghSuccess, setGhSuccess] = useState('');
+
+  const handleTokenChange = (val: string) => {
+    setGhToken(val);
+    if (val) { sessionStorage.setItem('gh_token', val); } else { sessionStorage.removeItem('gh_token'); }
+  };
 
   const toggle = (k: string) => setOpen((p) => ({ ...p, [k]: !p[k] }));
 
@@ -341,7 +351,7 @@ export default function EditPanel() {
     setGhSuccess('');
 
     try {
-      const repo = await fetchGitHubRepo(ghInput);
+      const repo = await fetchGitHubRepo(ghInput, ghToken || undefined);
 
       state.setProjectName(repo.full_name);
       state.setProjectDesc(repo.description);
@@ -432,6 +442,38 @@ export default function EditPanel() {
             </span>
             <Sparkles width={12} height={12} style={{ color: '#f59e0b' }} />
           </div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <input
+              type={showToken ? 'text' : 'password'}
+              value={ghToken}
+              onChange={(e) => handleTokenChange(e.target.value)}
+              placeholder="ghp_ 可选，提升 API 额度 (60→5000次/时)"
+              className="flex-1 px-2.5 py-1.5 rounded-lg text-[11px] bg-black/20 border border-white/[0.06]
+                text-white placeholder:text-white/20 focus:outline-none focus:border-violet-500/30
+                focus:bg-black/30 transition-all duration-200 font-mono"
+            />
+            <button
+              onClick={() => setShowToken(!showToken)}
+              className="shrink-0 px-2 py-1.5 rounded-lg text-[10px] cursor-pointer transition-all duration-200 hover:bg-white/[0.06]"
+              style={{ color: 'rgba(167,139,250,0.6)', border: '1px solid rgba(139,92,246,0.15)' }}
+            >
+              {showToken ? '隐藏' : '显示'}
+            </button>
+            {ghToken && (
+              <button
+                onClick={() => handleTokenChange('')}
+                className="shrink-0 px-2 py-1.5 rounded-lg text-[10px] cursor-pointer transition-all duration-200 hover:bg-white/[0.06]"
+                style={{ color: 'rgba(248,113,113,0.7)', border: '1px solid rgba(239,68,68,0.15)' }}
+              >
+                清除
+              </button>
+            )}
+          </div>
+          {ghToken && (
+            <div className="flex items-center gap-1 mb-2 text-[10px]" style={{ color: 'rgba(52,211,153,0.7)' }}>
+              <Check width={10} height={10} /> Token 已生效（仅存于当前会话，关闭标签页即清除）
+            </div>
+          )}
           <div className="flex gap-2">
             <input
               value={ghInput}
