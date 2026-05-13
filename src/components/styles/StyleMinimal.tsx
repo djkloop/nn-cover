@@ -47,6 +47,8 @@ export default function StyleMinimal() {
             width: '42%',
             paddingRight: '32px',
             boxSizing: 'border-box',
+            minWidth: 0,
+            overflow: 'hidden',
           }}
         >
           <div>
@@ -73,6 +75,7 @@ export default function StyleMinimal() {
                 letterSpacing: '-0.03em',
                 color: '#111',
                 margin: 0,
+                overflowWrap: 'break-word',
               }}
             >
               {state.mainTitlePrefix}
@@ -272,6 +275,7 @@ export default function StyleMinimal() {
                           color: '#555',
                           background: '#f4f4f4',
                           border: '1px solid #eaeaea',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         {tag}

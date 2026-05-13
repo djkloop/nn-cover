@@ -271,9 +271,10 @@ export default function StyleTerminal() {
                 padding: '10px 16px',
                 borderBottom: '1px solid rgba(0, 255, 65, 0.15)',
                 background: 'rgba(0, 255, 65, 0.03)',
+                flexShrink: 0,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                 <div
                   style={{
                     width: '8px',
@@ -281,13 +282,14 @@ export default function StyleTerminal() {
                     borderRadius: '50%',
                     background: '#00ff41',
                     boxShadow: '0 0 8px rgba(0, 255, 65, 0.5)',
+                    flexShrink: 0,
                   }}
                 />
-                <span style={{ fontSize: '11.5px', color: 'rgba(0, 255, 65, 0.55)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '11.5px', color: 'rgba(0, 255, 65, 0.55)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                   // PROJECT INFO
                 </span>
               </div>
-              <span style={{ fontSize: '9.5px', color: 'rgba(0, 255, 65, 0.25)' }}>
+              <span style={{ fontSize: '9.5px', color: 'rgba(0, 255, 65, 0.25)', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: '12px' }}>
                 [{state.date}]
               </span>
             </div>
@@ -296,7 +298,7 @@ export default function StyleTerminal() {
             <div style={{ padding: '18px 20px 16px 20px' }}>
               {/* Rank row */}
               <div style={{ marginBottom: '14px' }}>
-                <div style={{ fontSize: '9.5px', color: 'rgba(0, 255, 65, 0.35)', marginBottom: '4px', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '9.5px', color: 'rgba(0, 255, 65, 0.35)', marginBottom: '4px', letterSpacing: '0.12em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                   RANK
                 </div>
                 <div
@@ -322,7 +324,7 @@ export default function StyleTerminal() {
 
               {/* REPO row */}
               <div style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '9.5px', color: 'rgba(0, 255, 65, 0.35)', marginBottom: '4px', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '9.5px', color: 'rgba(0, 255, 65, 0.35)', marginBottom: '4px', letterSpacing: '0.12em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                   REPO
                 </div>
                 <div style={{ fontSize: '15px', fontWeight: 700, color: '#00ff41', wordBreak: 'break-all', lineHeight: 1.3 }}>
@@ -334,7 +336,7 @@ export default function StyleTerminal() {
 
               {/* DESC row */}
               <div style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '9.5px', color: 'rgba(0, 255, 65, 0.35)', marginBottom: '4px', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '9.5px', color: 'rgba(0, 255, 65, 0.35)', marginBottom: '4px', letterSpacing: '0.12em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                   DESC
                 </div>
                 <div
@@ -355,7 +357,7 @@ export default function StyleTerminal() {
               {/* TAGS row */}
               {validTags.length > 0 && (
                 <div style={{ marginBottom: '14px' }}>
-                  <div style={{ fontSize: '9.5px', color: 'rgba(0, 255, 65, 0.35)', marginBottom: '5px', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: '9.5px', color: 'rgba(0, 255, 65, 0.35)', marginBottom: '5px', letterSpacing: '0.12em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                     TAGS
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
