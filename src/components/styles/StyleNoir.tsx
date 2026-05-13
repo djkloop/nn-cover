@@ -81,6 +81,7 @@ export default function StyleNoir() {
 
   return (
     <div
+      id="cover-canvas"
       style={{
         aspectRatio: '2.35 / 1',
         background: C_BLACK,

@@ -28,6 +28,7 @@ export default function StyleGoldenLux() {
 
   return (
     <div
+      id="cover-canvas"
       style={{
         aspectRatio: '2.35 / 1',
         background: `linear-gradient(160deg, ${DEEP_BLACK} 0%, ${MID_BROWN} 40%, ${DARK_BROWN} 70%, ${DEEP_BLACK} 100%)`,

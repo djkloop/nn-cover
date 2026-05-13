@@ -19,6 +19,7 @@ export default function StyleMinimal() {
 
   return (
     <div
+      id="cover-canvas"
       style={{
         aspectRatio: '2.35 / 1',
         background: '#fafafa',

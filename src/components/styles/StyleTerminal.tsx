@@ -19,6 +19,7 @@ export default function StyleTerminal() {
 
   return (
     <div
+      id="cover-canvas"
       style={{
         width: '100%',
         aspectRatio: '2.35 / 1',

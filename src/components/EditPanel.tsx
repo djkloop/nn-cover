@@ -271,9 +271,15 @@ export default function EditPanel() {
 
   const download = async () => {
     const el = document.getElementById('cover-canvas');
-    if (!el) return;
+    console.log('[导出] 查找 cover-canvas:', el, '当前风格:', state.style);
+    if (!el) {
+      console.warn('[导出] 未找到 cover-canvas 元素，无法导出');
+      return;
+    }
     try {
+      console.log('[导出] 开始生成图片...');
       const dataUrl = await domToPng(el, { scale: 2, backgroundColor: '#000000' });
+      console.log('[导出] 图片生成成功，长度:', dataUrl.length);
       const a = document.createElement('a');
       const repoOwner = state.projectName.split('/')[0] || '';
       const repoName = state.projectName.split('/')[1] || state.projectName;
@@ -281,6 +287,7 @@ export default function EditPanel() {
       a.download = `${repoOwner}_${repoName}_${state.author}_${ts}.png`;
       a.href = dataUrl;
       a.click();
+      console.log('[导出] 触发下载完成');
     } catch (err) {
       console.error('导出失败:', err);
     }
@@ -507,7 +514,7 @@ export default function EditPanel() {
           className="section-card animate-fade-up"
           style={{ background: sections[0].bg, border: `1px solid ${sections[0].border}` }}
         >
-          <SectionHeader {...sections[0]} expanded={open.title} onToggle={() => toggle('title')} />
+          {(() => { const { key, ...rest } = sections[0]; return <SectionHeader key={key} {...rest} expanded={open.title} onToggle={() => toggle('title')} /> })()}
           {open.title && (
             <div className="mt-3 space-y-3 animate-fade-up" style={{ animationDelay: '50ms' }}>
               <div className="grid grid-cols-2 gap-3">
@@ -524,7 +531,7 @@ export default function EditPanel() {
           className="section-card animate-fade-up"
           style={{ background: sections[1].bg, border: `1px solid ${sections[1].border}`, animationDelay: '80ms' }}
         >
-          <SectionHeader {...sections[1]} expanded={open.features} onToggle={() => toggle('features')} />
+          {(() => { const { key, ...rest } = sections[1]; return <SectionHeader key={key} {...rest} expanded={open.features} onToggle={() => toggle('features')} /> })()}
           {open.features && (
             <div className="mt-3 space-y-3 animate-fade-up" style={{ animationDelay: '100ms' }}>
               {state.features.map((feat, i) => (
@@ -567,7 +574,7 @@ export default function EditPanel() {
           className="section-card animate-fade-up"
           style={{ background: sections[2].bg, border: `1px solid ${sections[2].border}`, animationDelay: '160ms' }}
         >
-          <SectionHeader {...sections[2]} expanded={open.meta} onToggle={() => toggle('meta')} />
+          {(() => { const { key, ...rest } = sections[2]; return <SectionHeader key={key} {...rest} expanded={open.meta} onToggle={() => toggle('meta')} /> })()}
           {open.meta && (
             <div className="mt-3 grid grid-cols-2 gap-3 animate-fade-up" style={{ animationDelay: '180ms' }}>
               <Field label="作者" value={state.author} onChange={(v) => state.setAuthor(v)} />
@@ -581,7 +588,7 @@ export default function EditPanel() {
           className="section-card animate-fade-up"
           style={{ background: sections[3].bg, border: `1px solid ${sections[3].border}`, animationDelay: '240ms' }}
         >
-          <SectionHeader {...sections[3]} expanded={open.project} onToggle={() => toggle('project')} />
+          {(() => { const { key, ...rest } = sections[3]; return <SectionHeader key={key} {...rest} expanded={open.project} onToggle={() => toggle('project')} /> })()}
           {open.project && (
             <div className="mt-3 space-y-3 animate-fade-up" style={{ animationDelay: '260ms' }}>
               <div className="grid grid-cols-2 gap-3">

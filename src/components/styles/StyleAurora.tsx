@@ -27,6 +27,7 @@ export default function StyleAurora() {
 
   return (
     <div
+      id="cover-canvas"
       className="relative w-full overflow-hidden"
       style={{
         aspectRatio: '2.35 / 1',
