@@ -170,19 +170,24 @@ async function fetchGitHubRepo(input: string): Promise<GitHubRepo> {
     }
   }
 
-  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-    headers: { Accept: 'application/vnd.github.v3+json' },
-  });
+  const token = import.meta.env.VITE_GITHUB_TOKEN;
+  const baseHeaders: Record<string, string> = { Accept: 'application/vnd.github.v3+json' };
+  if (token) baseHeaders.Authorization = `token ${token}`;
+
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: baseHeaders });
 
   if (!res.ok) {
     if (res.status === 404) throw new Error('仓库未找到，请检查地址是否正确');
-    throw new Error(`API 错误 (${res.status})`);
+    if (res.status === 403) throw new Error('GitHub API 请求频率超限，请稍后再试（或配置 VITE_GITHUB_TOKEN 提升限额）');
+    if (res.status === 422) throw new Error('仓库信息暂不可用');
+    const body = await res.json().catch(() => null);
+    throw new Error(`API 错误 (${res.status}): ${body?.message || '未知错误'}`);
   }
 
   const data = await res.json();
 
   const topicsRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/topics`, {
-    headers: { Accept: 'application/vnd.github.mercy-preview+json' },
+    headers: { ...baseHeaders, Accept: 'application/vnd.github.mercy-preview+json' },
   });
   let topics: string[] = [];
   try {
